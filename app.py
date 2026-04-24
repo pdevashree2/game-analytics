@@ -1,8 +1,54 @@
-import streamlit as st
+import os
 import sqlite3
 import pandas as pd
-import plotly.express as px
+from faker import Faker
+import random
+from datetime import timedelta
 
+# Auto-generate database if it doesn't exist
+if not os.path.exists("data/game_analytics.db"):
+    os.makedirs("data", exist_ok=True)
+    fake = Faker()
+    random.seed(42)
+    
+    players = [{"player_id": i, "username": fake.user_name(),
+        "country": random.choice(["India","USA","Brazil","Germany","Japan","UK","Canada"]),
+        "platform": random.choice(["Mobile","PC","Console"]),
+        "registration_date": str(fake.date_between(start_date="-2y", end_date="-6m"))}
+        for i in range(1, 501)]
+    
+    game_names = ["Shadow Strike","Neon Quest","Pixel Legends","Speed Rush","Dark Realm",
+                  "Star Arena","Block Blast","Turbo Race","Myth Wars","Cyber Hunt"]
+    games = [{"game_id": i, "game_name": game_names[i-1],
+        "genre": random.choice(["Action","RPG","Puzzle","Sports","Strategy"]),
+        "platform": random.choice(["Mobile","PC","Console"]),
+        "release_date": str(fake.date_between(start_date="-3y", end_date="-1y"))}
+        for i in range(1, 11)]
+    
+    sessions = [{"session_id": i, "player_id": random.randint(1,500),
+        "game_id": random.randint(1,10),
+        "start_time": str(fake.date_time_between(start_date="-1y", end_date="now")),
+        "duration_minutes": random.randint(5,120),
+        "score": random.randint(100,10000)}
+        for i in range(1, 5001)]
+    
+    purchases = [{"purchase_id": i, "player_id": random.randint(1,500),
+        "game_id": random.randint(1,10),
+        "item_name": random.choice(["Skin Pack","Extra Lives","Power Boost","Weapon Pack","Gold Coins","VIP Pass"]),
+        "amount": round(random.uniform(0.99, 49.99), 2),
+        "purchase_date": str(fake.date_between(start_date="-1y", end_date="today"))}
+        for i in range(1, 2001)]
+    
+    conn = sqlite3.connect("data/game_analytics.db")
+    pd.DataFrame(players).to_sql("players", conn, if_exists="replace", index=False)
+    pd.DataFrame(games).to_sql("games", conn, if_exists="replace", index=False)
+    pd.DataFrame(sessions).to_sql("sessions", conn, if_exists="replace", index=False)
+    pd.DataFrame(purchases).to_sql("purchases", conn, if_exists="replace", index=False)
+    conn.close()
+
+
+import streamlit as st
+import plotly.express as px
 conn = sqlite3.connect("data/game_analytics.db")
 
 st.set_page_config(page_title="Game Analytics Dashboard", page_icon="🎮", layout="wide")
